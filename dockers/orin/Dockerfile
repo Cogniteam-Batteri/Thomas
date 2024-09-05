@@ -1,19 +1,17 @@
 # Use the official ROS Humble image as a base
-FROM ros:humble
+FROM dustynv/ros:humble-ros-base-l4t-r36.2.0
 
 # Set the working directory inside the container
-WORKDIR /home/simulation/battery_ws
+WORKDIR /home/jetson/thomas_ws/
 
 # Create the src directory to avoid the error
 RUN mkdir -p src
 
 # Update package list and install necessary dependencies
-RUN apt-get update 
+RUN apt-get update && \
+    apt-get install -y python3-pip 
 
 # Install Python dependencies
 RUN pip3 install pydantic==1.10.12
 
-RUN apt-get install pkg-config libopencv-dev -y
-
-
-
+RUN  apt install ros-humble-diagnostic-updater -y
