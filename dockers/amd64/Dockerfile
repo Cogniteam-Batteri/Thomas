@@ -10,10 +10,13 @@ RUN mkdir -p src
 # Update package list and install necessary dependencies
 RUN apt-get update 
 
+RUN apt-get update && \
+    apt-get install -y python3-pip 
+    
 # Install Python dependencies
 RUN pip3 install pydantic==1.10.12
 
-RUN apt-get install pkg-config libopencv-dev -y
+RUN pip3 install pyserial
 
 
 

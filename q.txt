@@ -1,0 +1,7 @@
+1. why for example for profile_speed look like that: 01 23 81 60 00 55 55 08 00 49
+2. hat is the purpose of homing
+3. can reach zero position
+4. how to measure speed of motor
+5. how to convert rpm to speed for example m/second
+6. explaination about velocity mode
+
