@@ -2,6 +2,10 @@ from enum import Enum
 
 ENDCODER_RESOLUTION = 10000
 
+# Define the range
+STEERING_DEG_MIN = -119
+STEERING_DEG_MAX = 119
+
 # Define an Enum class
 class OperationMode(Enum):
     NAME = 0x6060

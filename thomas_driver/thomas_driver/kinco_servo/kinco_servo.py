@@ -1,6 +1,6 @@
 import serial
 import struct
-from kinco_enum import *
+from thomas_driver.kinco_servo.kinco_enum import *
 
 class KincoServo:
     def __init__(self, port, baudrate=38400, node_id=1):
@@ -48,24 +48,31 @@ class KincoServo:
 
     def write_parameter(self, index, subindex, value) -> bool:
         if isinstance(value, int):
+            print(f" the value is {value}")
+            # Check if the `index` matches the ControlWord index
             if index == ControlWord.NAME.value:  # Controlword
-            # Always use 2-byte format for Controlword
+                # Always use 2-byte format for Controlword, indicated by '0x2B' as the command specifier
                 command = struct.pack('<BHBH2x', 0x2B, index, subindex, value)
+            # Check if the value fits in 1 byte (0 to 0xFF)
             elif 0 <= value <= 0xFF:
+                # Use 1-byte format for the value, indicated by '0x2F' as the command specifier
                 command = struct.pack('<BHBB3x', 0x2F, index, subindex, value)
+            # Check if the value fits in 2 bytes (-0x8000 to 0x7FFF)
             elif -0x8000 <= value <= 0x7FFF:
-                command = struct.pack('<BHBH2x', 0x2B, index, subindex, value)
+                # Use 2-byte format for the value, indicated by '0x2B' as the command specifier
+                command = struct.pack('<BHBh2x', 0x2B, index, subindex, value)  # '<BHBh' for signed short
+            # Check if the value fits in 4 bytes (-0x80000000 to 0x7FFFFFFF)
             elif -0x80000000 <= value <= 0x7FFFFFFF:
-                command = struct.pack('<BHBL', 0x23, index, subindex, value)
+                # Use 4-byte signed integer format for the value, indicated by '0x23' as the command specifier
+                command = struct.pack('<BHBi', 0x23, index, subindex, value)  # '<BHBi' for signed int
             else:
+                # Print an error message if the value is out of range and return False
                 print("Value out of range")
                 return False
         else:
             print('not an integer !!')
             return
         try:
-
-            #command = struct.pack('<BHBL', 0x23, index, subindex, value)
             response = self._send_receive(command)
             if response[0] == 0x80:
                 error_code = struct.unpack('<L', response[4:8])[0]
@@ -74,8 +81,9 @@ class KincoServo:
             elif response[0] != 0x60:
                 print(f"Unexpected response: 0x{response[0]:02X}")
                 return False
-            
+
             return True
         except Exception as e:
             print(e)
             return False
+

@@ -15,3 +15,6 @@ RUN apt-get update && \
 RUN pip3 install pydantic==1.10.12
 
 RUN  apt install ros-humble-diagnostic-updater -y
+
+
+RUN  apt install ros-humble-ackermann-msgs -y

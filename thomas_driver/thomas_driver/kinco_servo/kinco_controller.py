@@ -1,9 +1,15 @@
-from kinco_servo import KincoServo
-from kinco_enum import *
+
+
+from thomas_driver.kinco_servo.kinco_servo import KincoServo
+from thomas_driver.kinco_servo.kinco_enum import *
+import math
+
 import time
+
 class KincoController:
     def __init__(self, port, baudrate=38400, node_id=1):
         self.servo = KincoServo(port,baudrate,node_id)
+
 
     def set_operation_mode(self, mode):
         return self.servo.write_parameter(OperationMode.NAME.value, 0, mode)
@@ -18,7 +24,7 @@ class KincoController:
 
     def set_invert_dir(self,value):
         print(f" set_invert_dir with value {value}")
-        return self.servo.write_parameter(InvertDir.NAME.value, 0, value)
+        return self.serdvo.write_parameter(InvertDir.NAME.value, 0, value)
 
     def set_target_position(self,value):
         print(f" set_target_position with value {value}")
@@ -65,17 +71,15 @@ class KincoController:
             print(f"Unexpected error: {e}")
             return 0
         
-    def absolute_position(self,target_position,direaction=InvertDir.CW.value,
-                            profile_speed=500,profile_acc=610,profile_dec=610):
+    def absolute_position(self,target_position,profile_speed=500,profile_acc=610,profile_dec=610):
         
-        print(f" absolute_position !!")
+        print(f" absolute_position !! { target_position}")
         if not self.set_control_word(ControlWord.ERROR_RESET.value):
             print("error in : set_control_word")
 
         if not self.set_operation_mode(OperationMode.POSITION_CONTROL.value):
             print("error in : set_operation_mode")
-        if not self.set_invert_dir(direaction):
-            print("error in : set_invert_dir")
+       
         if not self.set_target_position(target_position):
             print("error in : set_target_position")
         if not self.set_profile_speed(self.uint32(profile_speed)):
@@ -105,29 +109,63 @@ class KincoController:
     def deg_to_count(self, deg):
 
         return deg * ENDCODER_RESOLUTION
+
+
+
+    def get_absolute_position(self):
+        res = self.servo.read_parameter(0x63,0x0020)                               
+        print(f" the res is  {res}")
+
+    def angle_position(self, angle_deg, steering_angle_velocity = 0.78):
         
-def main():
-    controller = KincoController("/dev/ttyUSB0")  # Adjust port as needed
+        rpm = self.steering_angle_velocity_to_rpm(steering_angle_velocity)
+        print(f" the rpm is {rpm},  the steering_angle_velocity {steering_angle_velocity}")
+       
+        # Check if the angle is not within the range
+        if angle_deg < STEERING_DEG_MAX and angle_deg > STEERING_DEG_MIN:
+
+            self.absolute_position(self.deg_to_count(int(angle_deg)), rpm, 1000, 1000)
+            
+        else:
+            print(f"wanted angle {angle_deg} not in range !!")
+
+
+    def steering_angle_velocity_to_rpm(self, steering_angle_velocity):
+         # Encapsulated constants
+        rpm_initial = 1500
+        angle_change = math.pi / 2  # 90 degrees in radians
+        time_seconds = 5
+        
+        # Compute the initial rate of angle change
+        initial_rate = angle_change / time_seconds
+        
+        # Calculate and return the new R based on rad_per_second
+        return int(rpm_initial * (steering_angle_velocity / initial_rate))
+
+
+
+# def main():
+#     controller = KincoController("/dev/ttyUSB0")  # Adjust port as needed
     
-    # controller.homing()
+#     # controller.homing()
     
-    #CW : LEFT
-    #CCW RIGHT
-    controller.absolute_position(controller.deg_to_count(90),0, 1500, 610, 610)
+#     #CW : LEFT
+#     #CCW RIGHT
+#     controller.absolute_position(controller.deg_to_count(90),0, 1500, 610, 610)
 
 
-    # time.sleep(5)
-    # controller.quick_stop()
-    # time.sleep(5)
+#     # time.sleep(5)
+#     # controller.quick_stop()
+#     # time.sleep(5)
 
 
-    # controller.absolute_position(controller.deg_to_count(10),0, 400)
+#     # controller.absolute_position(controller.deg_to_count(10),0, 400)
 
 
-    #controller.set_profile_speed(200) # ndeeds to be 01 23 81 60 00 55 55 08 00 49
+#     #controller.set_profile_speed(200) # ndeeds to be 01 23 81 60 00 55 55 08 00 49
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
 
 # cogniteam1!1!
