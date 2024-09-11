@@ -14,8 +14,8 @@ class KincoServo:
         full_data = bytes([self.node_id]) + data
         checksum = self._calculate_checksum(full_data)
         self.ser.write(full_data + bytes([checksum]))
-        temp:bytearray = full_data + bytes([checksum])
-        print(temp.hex(":"))
+        # temp:bytearray = full_data + bytes([checksum])
+        # print(temp.hex(":"))
         response = self.ser.read(10)
         if len(response) != 10:
             raise Exception(f"Invalid response length: {len(response)}")
@@ -48,7 +48,6 @@ class KincoServo:
 
     def write_parameter(self, index, subindex, value) -> bool:
         if isinstance(value, int):
-            print(f" the value is {value}")
             # Check if the `index` matches the ControlWord index
             if index == ControlWord.NAME.value:  # Controlword
                 # Always use 2-byte format for Controlword, indicated by '0x2B' as the command specifier

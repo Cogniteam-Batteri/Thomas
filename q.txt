@@ -1,5 +1,14 @@
-3. can reach zero position
-4. convert vel to rpm
-6. explaination about velocity mode
-7. bug - when the rmp is high is stuck in position mode
 
+היפוך כיוון האם אמורים להשתמש או לא חייב
+
+אם נמצאים במוד מהירות האם 
+quick stop זו הדרך הנכונה
+
+לאיזה ControlWord
+צריך להחזיר לפני שנותנים פקודת מהירות אם לפני כן היה מצב שהוא היה ב 
+stop
+
+להסתכל על הנוסחא של מהירות קווית ל
+rpm
+
+מיקום 0

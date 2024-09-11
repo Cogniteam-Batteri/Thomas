@@ -1,6 +1,11 @@
 from enum import Enum
 
 ENDCODER_RESOLUTION = 10000
+WHEEL_DIAMETER =  0.32
+GEAR_RATIO = 30
+DIFF_LINEAR_VEL_THRESHOLD = 0.01
+DIFF_STEERING_ANGLE_DEGREE_THRESHOLD = 1
+
 
 # Define the range
 STEERING_DEG_MIN = -119
@@ -10,6 +15,7 @@ STEERING_DEG_MAX = 119
 class OperationMode(Enum):
     NAME = 0x6060
     POSITION_CONTROL = 1
+    SPEED_CONTROL = 3
     HOMING_MODE = 6
  
 # Define an Enum class
@@ -17,7 +23,8 @@ class ControlWord(Enum):
     NAME = 0x6040
     ERROR_RESET = 0x86
     ENABLE = 0X0F
-    HOMEING_SEND_COMMAND = 0x1F
+    DISABLE = 0X06
+    HOMING_SEND_COMMAND = 0x1F
     ABSOLUTE_ENABLE = 0X2F
     QUICK_STOP = 0X0b
     SEND_COMMAND = 0x3F
@@ -40,6 +47,9 @@ class InvertDir(Enum):
 class TargetPosition(Enum):
     NAME = 0x607A
 
+class TargetSpeed(Enum):
+    NAME = 0x60FF
+    
 class ProfileSpeed(Enum):
     NAME = 0x6081
 

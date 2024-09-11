@@ -9,6 +9,17 @@ import time
 class KincoController:
     def __init__(self, port, baudrate=38400, node_id=1):
         self.servo = KincoServo(port,baudrate,node_id)
+        self.set_control_word(ControlWord.ERROR_RESET.value)
+
+
+    # def get_status_word(self):
+    #     return self.servo.read_parameter(0x4160, 0)  # Note the byte swap here
+
+    def get_control_word(self):
+        return self.servo.read_parameter(ControlWord.NAME.value, 0)  # Note the byte swap here
+
+    def get_operation_mode(self):
+        return self.servo.read_parameter(OperationMode.NAME.value, 0)  # Note the byte swap here
 
 
     def set_operation_mode(self, mode):
@@ -29,6 +40,10 @@ class KincoController:
     def set_target_position(self,value):
         print(f" set_target_position with value {value}")
         return self.servo.write_parameter(TargetPosition.NAME.value, 0, value)
+    
+    def set_target_speed(self,value):
+        print(f" set_target_speed with value {value}")
+        return self.servo.write_parameter(TargetSpeed.NAME.value, 0, self.calc_rpm_velocity(value))
 
     def set_profile_speed(self,value):
         print(f" set_profile_speed with value {value}")
@@ -55,6 +70,8 @@ class KincoController:
             print(f"Unexpected error: {e}")
             return 0
 
+
+
     def calc_acc_dec(self, rps_s):
 
         try:            
@@ -73,10 +90,18 @@ class KincoController:
         
     def absolute_position(self,target_position,profile_speed=500,profile_acc=610,profile_dec=610):
         
-        print(f" absolute_position !! { target_position}")
-        if not self.set_control_word(ControlWord.ERROR_RESET.value):
-            print("error in : set_control_word")
 
+        operation_mode = self.get_operation_mode()
+        control_word =   self.get_control_word()
+
+
+        if operation_mode == OperationMode.POSITION_CONTROL and control_word == ControlWord.ABSOLUTE_ENABLE:
+            self.set_target_position(target_position)
+            return
+        
+
+        print(f" absolute_position !! { target_position}")
+        
         if not self.set_operation_mode(OperationMode.POSITION_CONTROL.value):
             print("error in : set_operation_mode")
        
@@ -93,23 +118,18 @@ class KincoController:
         if not self.set_control_word(ControlWord.SEND_COMMAND.value):
             print("error in : set_control_word")
 
-    def quick_stop(self):
-        print(f" quick_stop !!")
-        self.set_quick_stop_mode(QuickStopMode.STOP_WITHOUT_CONTROL.value)
-        self.set_control_word(ControlWord.ENABLE.value)
-        self.set_control_word(ControlWord.QUICK_STOP.value)
+   
 
     def homing(self):
         print(f" homing !!")
         self.set_operation_mode(OperationMode.HOMING_MODE.value)
-        self.set_control_word(ControlWord.ERROR_RESET.value) # clear error
         self.set_control_word(ControlWord.ENABLE.value) #F
-        self.set_control_word(ControlWord.HOMEING_SEND_COMMAND.value) #1F
+        self.set_control_word(ControlWord.HOMING_SEND_COMMAND.value) #1F
 
     def deg_to_count(self, deg):
-
-        return deg * ENDCODER_RESOLUTION
-
+        # יחס 1:362 בסיבוב.
+        # return deg * ENDCODER_RESOLUTION
+        return int((362 / 360) * deg * ENDCODER_RESOLUTION)
 
 
     def get_absolute_position(self):
@@ -129,6 +149,33 @@ class KincoController:
         else:
             print(f"wanted angle {angle_deg} not in range !!")
 
+    def quick_stop(self):
+        print(f" quick_stop !!")
+        self.set_quick_stop_mode(QuickStopMode.STOP_BY_USING_RAMP.value)
+        self.set_control_word(ControlWord.ENABLE.value)
+        self.set_control_word(ControlWord.QUICK_STOP.value)
+
+    def linear_velocity_cmd(self, linear_velocity = 0.5, profile_acc=610,profile_dec=610):
+
+        operation_mode = self.get_operation_mode()
+        control_word =   self.get_control_word()
+
+        print(f" the control world is {control_word}, the operation_mode is {operation_mode}")
+        if operation_mode == OperationMode.SPEED_CONTROL.value and control_word == ControlWord.ENABLE.value:
+            print(f" just update the speed to {linear_velocity}")
+            self.set_target_speed(self.wheel_angle_velocity_to_rpm(linear_velocity))
+            return   
+
+        print(f" initalize  speed with  {linear_velocity}")
+        self.set_control_word(ControlWord.ERROR_RESET.value)
+
+        self.set_operation_mode(OperationMode.SPEED_CONTROL.value)
+       
+        self.set_target_speed(self.wheel_angle_velocity_to_rpm(linear_velocity))
+        self.set_profile_acc(self.uint32(profile_acc))
+        self.set_profile_dec(self.uint32(profile_dec))
+
+        self.set_control_word(ControlWord.ENABLE.value)
 
     def steering_angle_velocity_to_rpm(self, steering_angle_velocity):
          # Encapsulated constants
@@ -142,30 +189,11 @@ class KincoController:
         # Calculate and return the new R based on rad_per_second
         return int(rpm_initial * (steering_angle_velocity / initial_rate))
 
-
-
-# def main():
-#     controller = KincoController("/dev/ttyUSB0")  # Adjust port as needed
-    
-#     # controller.homing()
-    
-#     #CW : LEFT
-#     #CCW RIGHT
-#     controller.absolute_position(controller.deg_to_count(90),0, 1500, 610, 610)
-
-
-#     # time.sleep(5)
-#     # controller.quick_stop()
-#     # time.sleep(5)
-
-
-#     # controller.absolute_position(controller.deg_to_count(10),0, 400)
-
-
-#     #controller.set_profile_speed(200) # ndeeds to be 01 23 81 60 00 55 55 08 00 49
-
-
-# if __name__ == "__main__":
-#     main()
+    def wheel_angle_velocity_to_rpm(self, linear_velocity):
+       
+        
+        rpm =  (linear_velocity * 60 * GEAR_RATIO) / (WHEEL_DIAMETER * math.pi)
+        print(f" the rpm isssssssssssssssssssss {rpm}")
+        return rpm
 
 # cogniteam1!1!
