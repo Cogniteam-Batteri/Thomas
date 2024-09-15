@@ -18,3 +18,9 @@ RUN  apt install ros-humble-diagnostic-updater -y
 
 
 RUN  apt install ros-humble-ackermann-msgs -y
+
+#JOY
+RUN apt-get install libcwiid1 libcwiid-dev -y
+RUN apt-get install libbluetooth-dev -y
+RUN  apt-get install libx11-dev -y
+RUN apt-get install libspnav-dev -y
