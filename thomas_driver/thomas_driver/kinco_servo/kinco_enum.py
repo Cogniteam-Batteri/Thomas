@@ -49,7 +49,13 @@ class TargetPosition(Enum):
 
 class TargetSpeed(Enum):
     NAME = 0x60FF
-    
+
+class RealSpeed(Enum):
+    NAME = 0x606C
+
+class ActualPose(Enum):
+    NAME = 0x6360 
+
 class ProfileSpeed(Enum):
     NAME = 0x6081
 

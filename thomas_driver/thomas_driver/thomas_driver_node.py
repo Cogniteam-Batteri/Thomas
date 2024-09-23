@@ -11,34 +11,35 @@ from thomas_driver.kinco_servo.kinco_enum import *
 import math
 
 class DrivingMode(Enum):
-    HOMING = 'homing'
-    DISCRETE = 'discrete'
-    JOYSTICK = 'joystick'
+    IDLE =      'idle'
+    HOMING =    'homing'
+    DISCRETE =  'discrete'
+    JOYSTICK =  'joystick'
 
 class ThomasDriver(Node):
     def __init__(self):
         super().__init__('thomas_driver_node')
 
         # Initialize the steering_controller
-        # self.steering_controller = KincoController("/dev/ttyUSB0")  
-        self.steering_angle_velocity = 25 * (math.pi / 180)
+        self.steering_controller = KincoController("/dev/ttyUSB1")  
+        # self.steering_angle_velocity = 10 * (math.pi / 180)
 
-        self.wheel_controller = KincoController("/dev/ttyUSB0")  
+        self.wheel_controller = KincoController("/dev/ttyUSB2")  
 
 
         # Initialize mode state
-        self.mode = DrivingMode.JOYSTICK
+        self.mode = DrivingMode.IDLE
         self.angle = 0
         self.prev_steering_angle = 0.0
         self.prev_linear_vel = 0.0
 
         # Create subscribers
-        self.create_subscription(String, 'mode_switch', self.mode_switch_callback, 10)
+        self.create_subscription(String, '/thomas/mode_switch', self.mode_switch_callback, 10)
         self.create_subscription(String, '/thomas/angle_cmd', self.angle_callback, 10)
         self.create_subscription(String, '/thomas/velocity_cmd', self.velocity_callback, 10)
 
         self.create_subscription(Bool, '/thomas/stop', self.stop_callback, 10)
-        self.create_subscription(AckermannDriveStamped, '/thomas/ackermann_cmd', self.joystick_callback, 10)
+        self.create_subscription(AckermannDriveStamped, '/thomas/cmd_vel', self.joystick_callback, 10)
 
         # Initialize diagnostic updater
         self.updater = Updater(self)
@@ -57,51 +58,61 @@ class ThomasDriver(Node):
         stat.summary(DiagnosticStatus.OK, mode_str)
         return stat
 
-    def joystick_callback(self, msg):        
-        
-        pass
+
+    def stop_wheel(self):
+
+        self.wheel_controller.quick_stop()
+
+    def joystick_callback(self, msg):      
+
         # diff_deg = self.absolute_diff_in_degrees(msg.drive.steering_angle, self.prev_steering_angle)
-        # self.prev_steering_angle = msg.drive.steering_angle
+        # self.prev_steering_angle = msg.drive.steering_angle       
 
-        # diff_vel = math.fabs(self.prev_linear_vel - msg.drive.speed)
-        # self.prev_linear_vel = msg.drive.speed
+        if self.mode == DrivingMode.JOYSTICK:
+            
+            # STOP
+            if msg.drive.speed == 0.0:
+                self.stop_wheel()
+            else:
+                # DRIVING
+                self.wheel_controller.linear_velocity_cmd(msg.drive.speed)    
 
-        # if self.mode == DrivingMode.JOYSTICK:
+            if msg.drive.steering_angle == 0.0:
+                pass
+                # Re-align the vehicle's steering motor
+                # self.steering_controller.angle_position(5, self.steering_angle_velocity)     
+            else:
+                # steering cmd
+                self.steering_controller.angle_position(math.degrees(msg.drive.steering_angle), msg.drive.steering_angle_velocity)
 
-        #     if msg.drive.speed == 0.0:
-        #         self.wheel_controller.quick_stop()
-        #         # self.steering_controller.angle_position(5, self.steering_angle_velocity)     
-        #         return
+            
 
-
-        #     if diff_vel > DIFF_LINEAR_VEL_THRESHOLD:
-        #         self.wheel_controller.linear_velocity_cmd(msg.drive.speed)
-
-        #     # if diff_deg > DIFF_STEERING_ANGLE_DEGREE_THRESHOLD:
-        #     #     self.steering_controller.angle_position(math.degrees(msg.drive.steering_angle), self.steering_angle_velocity)
 
     def stop_callback(self, msg: Bool):
         self.get_logger().info(f'Received stop signal: {msg.data}')
-        # self.steering_controller.quick_stop()
+        self.steering_controller.quick_stop()
         self.wheel_controller.quick_stop()
         self.get_logger().info('Quick stop executed in DISCRETE mode.')
 
     def mode_switch_callback(self, msg: String):
         try:
-            print(f" the msg.data is {msg.data}")
-            if msg.data == 'homing':
+            if msg.data == 'homing' and self.mode != DrivingMode.HOMING:
                 self.mode = DrivingMode.HOMING
-            elif msg.data == 'discrete':
-                self.mode = DrivingMode.DISCRETE
-            elif msg.data == 'joystick':
-                self.mode = DrivingMode.JOYSTICK    
-            else:
-                self.get_logger().info('Invalid mode!.')
-
-            if self.mode == DrivingMode.HOMING:
+                self.stop_wheel()
                 self.steering_controller.homing()
-                self.get_logger().info('Executing homing procedure.')
-
+            elif msg.data == 'reset_errors':
+                self.steering_controller.reset_errors()
+                self.wheel_controller.reset_errors()
+                self.mode = DrivingMode.IDLE
+            elif msg.data == 'discrete' and self.mode != DrivingMode.DISCRETE:
+                self.mode = DrivingMode.DISCRETE
+            elif msg.data == 'joystick' and self.mode != DrivingMode.JOYSTICK:
+                self.mode = DrivingMode.JOYSTICK    
+            elif msg.data == 'idle' and self.mode != DrivingMode.IDLE:
+                self.mode = DrivingMode.IDLE    
+            
+            self.get_logger().info(f"the mode is: {msg.data}")
+               
         except KeyError:
             self.get_logger().warn(f'Invalid mode: {msg.data}')
 

@@ -1,0 +1,10 @@
+hz: 10.0
+min_max_linear_velocity: 0.5
+max_steering_angle_deg: 45
+steering_angle_velocity: 10 # rad/s
+Y_button: "HOMING"
+B_button: "RESET_ERRORS"
+A_button: "JOYSTICK"
+X_button: "IDLE"
+    
+    

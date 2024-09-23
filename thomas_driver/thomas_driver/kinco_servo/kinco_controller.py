@@ -21,40 +21,42 @@ class KincoController:
     def get_operation_mode(self):
         return self.servo.read_parameter(OperationMode.NAME.value, 0)  # Note the byte swap here
 
+    def get_real_speed(self):
+        return self.servo.read_parameter(RealSpeed.NAME.value, 0)  # Note the byte swap here
 
     def set_operation_mode(self, mode):
         return self.servo.write_parameter(OperationMode.NAME.value, 0, mode)
 
     def set_control_word(self,value):
-        print(f" set_control_word with value {value}")
+        # print(f" set_control_word with value {value}")
         return self.servo.write_parameter(ControlWord.NAME.value, 0, value)
     
     def set_quick_stop_mode(self,value):
-        print(f" set_quick_stop_mode with value {value}")
+        # print(f" set_quick_stop_mode with value {value}")
         return self.servo.write_parameter(QuickStopMode.NAME.value, 0, value)
 
     def set_invert_dir(self,value):
-        print(f" set_invert_dir with value {value}")
+        # print(f" set_invert_dir with value {value}")
         return self.serdvo.write_parameter(InvertDir.NAME.value, 0, value)
 
     def set_target_position(self,value):
-        print(f" set_target_position with value {value}")
+        # print(f" set_target_position with value {value}")
         return self.servo.write_parameter(TargetPosition.NAME.value, 0, value)
     
     def set_target_speed(self,value):
-        print(f" set_target_speed with value {value}")
+        # print(f" set_target_speed with value {value}")
         return self.servo.write_parameter(TargetSpeed.NAME.value, 0, self.calc_rpm_velocity(value))
 
     def set_profile_speed(self,value):
-        print(f" set_profile_speed with value {value}")
+        # print(f" set_profile_speed with value {value}")
         return self.servo.write_parameter(ProfileSpeed.NAME.value, 0, self.calc_rpm_velocity(value))
 
     def set_profile_acc(self,value):
-        print(f" set_profile_acc with value {value}")
+        # print(f" set_profile_acc with value {value}")
         return self.servo.write_parameter(ProfileACC.NAME.value, 0, self.calc_acc_dec(value))
 
     def set_profile_dec(self,value):
-        print(f" set_profile_dec with value {value}")
+        # print(f" set_profile_dec with value {value}")
         return self.servo.write_parameter(ProfileDEC.NAME.value, 0, self.calc_acc_dec(value))
 
     def uint32(self,value):
@@ -70,7 +72,9 @@ class KincoController:
             print(f"Unexpected error: {e}")
             return 0
 
+    def reset_errors(self):
 
+        self.set_control_word(ControlWord.ERROR_RESET.value)
 
     def calc_acc_dec(self, rps_s):
 
@@ -150,7 +154,12 @@ class KincoController:
             print(f"wanted angle {angle_deg} not in range !!")
 
     def quick_stop(self):
-        print(f" quick_stop !!")
+        
+        # if no need  quick_stop
+        current_speed = self.get_real_speed()
+        if current_speed == 0:
+            return
+        
         self.set_quick_stop_mode(QuickStopMode.STOP_BY_USING_RAMP.value)
         self.set_control_word(ControlWord.ENABLE.value)
         self.set_control_word(ControlWord.QUICK_STOP.value)
@@ -160,18 +169,22 @@ class KincoController:
         operation_mode = self.get_operation_mode()
         control_word =   self.get_control_word()
 
-        print(f" the control world is {control_word}, the operation_mode is {operation_mode}")
+       
+
+        # print(f" the control world is {control_word}, the operation_mode is {operation_mode}")
         if operation_mode == OperationMode.SPEED_CONTROL.value and control_word == ControlWord.ENABLE.value:
-            print(f" just update the speed to {linear_velocity}")
+            # print(f" just update the speed to {linear_velocity}")
             self.set_target_speed(self.wheel_angle_velocity_to_rpm(linear_velocity))
             return   
 
-        print(f" initalize  speed with  {linear_velocity}")
+        # print(f" initalize  speed with  {linear_velocity}")
         self.set_control_word(ControlWord.ERROR_RESET.value)
 
         self.set_operation_mode(OperationMode.SPEED_CONTROL.value)
-       
+
+        
         self.set_target_speed(self.wheel_angle_velocity_to_rpm(linear_velocity))
+
         self.set_profile_acc(self.uint32(profile_acc))
         self.set_profile_dec(self.uint32(profile_dec))
 
@@ -189,11 +202,9 @@ class KincoController:
         # Calculate and return the new R based on rad_per_second
         return int(rpm_initial * (steering_angle_velocity / initial_rate))
 
-    def wheel_angle_velocity_to_rpm(self, linear_velocity):
-       
+    def wheel_angle_velocity_to_rpm(self, linear_velocity):       
         
         rpm =  (linear_velocity * 60 * GEAR_RATIO) / (WHEEL_DIAMETER * math.pi)
-        print(f" the rpm isssssssssssssssssssss {rpm}")
+        # print(f" the rpm isssssssssssssssssssss {rpm}")
         return rpm
 
-# cogniteam1!1!

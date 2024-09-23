@@ -42,7 +42,7 @@ class KincoServo:
                 # raise Exception(f"Unexpected response command: {cmd}")
                 return None
         except Exception as e:
-            print(e)
+            # print(e)
             return None
     
 
@@ -66,23 +66,23 @@ class KincoServo:
                 command = struct.pack('<BHBi', 0x23, index, subindex, value)  # '<BHBi' for signed int
             else:
                 # Print an error message if the value is out of range and return False
-                print("Value out of range")
+                # print("Value out of range")
                 return False
         else:
-            print('not an integer !!')
+            # print('not an integer !!')
             return
         try:
             response = self._send_receive(command)
             if response[0] == 0x80:
                 error_code = struct.unpack('<L', response[4:8])[0]
-                print(f"Write failed. Error code: 0x{error_code:08X}")
+                # print(f"Write failed. Error code: 0x{error_code:08X}")
                 return False
             elif response[0] != 0x60:
-                print(f"Unexpected response: 0x{response[0]:02X}")
+                # print(f"Unexpected response: 0x{response[0]:02X}")
                 return False
 
             return True
         except Exception as e:
-            print(e)
+            # print(e)
             return False
 
