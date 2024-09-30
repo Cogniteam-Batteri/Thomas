@@ -21,10 +21,10 @@ class ThomasDriver(Node):
         super().__init__('thomas_driver_node')
 
         # Initialize the steering_controller
-        self.steering_controller = KincoController("/dev/ttyUSB1")  
-        # self.steering_angle_velocity = 10 * (math.pi / 180)
+        self.steering_controller = KincoController(MotorType.STEERING,"/dev/ttyUSB0")  
 
-        self.wheel_controller = KincoController("/dev/ttyUSB2")  
+        self.wheel_controller = KincoController(MotorType.WHEEL,"/dev/ttyUSB1") 
+
 
 
         # Initialize mode state
@@ -38,7 +38,6 @@ class ThomasDriver(Node):
         self.create_subscription(String, '/thomas/angle_cmd', self.angle_callback, 10)
         self.create_subscription(String, '/thomas/velocity_cmd', self.velocity_callback, 10)
 
-        self.create_subscription(Bool, '/thomas/stop', self.stop_callback, 10)
         self.create_subscription(AckermannDriveStamped, '/thomas/cmd_vel', self.joystick_callback, 10)
 
         # Initialize diagnostic updater
@@ -61,7 +60,7 @@ class ThomasDriver(Node):
 
     def stop_wheel(self):
 
-        self.wheel_controller.quick_stop()
+        self.wheel_controller.linear_velocity_cmd(0)       
 
     def joystick_callback(self, msg):      
 
@@ -72,28 +71,22 @@ class ThomasDriver(Node):
             
             # STOP
             if msg.drive.speed == 0.0:
-                self.stop_wheel()
+                self.wheel_controller.linear_velocity_cmd(msg.drive.speed)  
             else:
                 # DRIVING
                 self.wheel_controller.linear_velocity_cmd(msg.drive.speed)    
 
             if msg.drive.steering_angle == 0.0:
-                pass
                 # Re-align the vehicle's steering motor
-                # self.steering_controller.angle_position(5, self.steering_angle_velocity)     
+                
+                # self.steering_controller.quick_stop()
+
+                self.steering_controller.angle_position(0, msg.drive.steering_angle_velocity)     
+            
             else:
-                # steering cmd
                 self.steering_controller.angle_position(math.degrees(msg.drive.steering_angle), msg.drive.steering_angle_velocity)
 
-            
-
-
-    def stop_callback(self, msg: Bool):
-        self.get_logger().info(f'Received stop signal: {msg.data}')
-        self.steering_controller.quick_stop()
-        self.wheel_controller.quick_stop()
-        self.get_logger().info('Quick stop executed in DISCRETE mode.')
-
+    
     def mode_switch_callback(self, msg: String):
         try:
             if msg.data == 'homing' and self.mode != DrivingMode.HOMING:
@@ -124,11 +117,11 @@ class ThomasDriver(Node):
 
 
     def angle_callback(self, msg: String):
-        self.angle = int(msg.data)
-        self.get_logger().info(f'Received angle: {self.angle}')
-        if self.mode == DrivingMode.DISCRETE:
-            self.steering_controller.angle_position(self.angle, self.steering_angle_velocity)
-            self.get_logger().info(f'Set angle to: {self.angle} in DISCRETE mode.')
+        steering_angle_velocity = 10 * (math.pi / 180)
+
+        angle = int(msg.data)
+        self.get_logger().info(f'Received angle: {angle}')
+        self.steering_controller.angle_position(angle, steering_angle_velocity)
 
     def absolute_diff_in_degrees(self, rad1, rad2):
         diff_radians = abs(rad1 - rad2)

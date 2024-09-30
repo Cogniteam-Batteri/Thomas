@@ -26,6 +26,8 @@ class XBOX_1_STICK(Enum):
 
 
 THRESHOLD_LINEAR_VEL = 0.1
+THRESHOLD_STEERING_ANGLE_ZERO = 0.025
+
    
 class ThomasJoystickController(Node):
     def __init__(self):
@@ -99,7 +101,7 @@ class ThomasJoystickController(Node):
 
        
     def reset_error_action(self):
-        print("reset_errors action triggered!!!!!!!!!!!!!!!!!!!!")
+        self.get_logger().info('reset_errors action triggered')
         msg = String()
         msg.data = 'reset_errors'
         self.driver_state_publisher.publish(msg)
@@ -107,26 +109,28 @@ class ThomasJoystickController(Node):
 
      
     def homing_action(self):
-        print("Homing action triggered!!!!!!!!!!!!!!!!!!!!")
+        self.get_logger().info('homing action triggered')
         msg = String()
         msg.data = 'homing'
         self.driver_state_publisher.publish(msg)
 
     def joystick_action(self):
-        print("Joystick action triggered!")
+        self.get_logger().info('joystick action triggered')
+
         msg = String()
         msg.data = 'joystick'
         self.driver_state_publisher.publish(msg)
 
     def discrete_action(self):
-        print("Discrete action triggered!")
+        self.get_logger().info('discrete action triggered')
+
         msg = String()
         msg.data = 'discrete'
         self.driver_state_publisher.publish(msg)
 
 
     def idle_action(self):
-        print("Idle action triggered!")
+        self.get_logger().info('idle action triggered')
         msg = String()
         msg.data = 'idle'
         self.driver_state_publisher.publish(msg)
@@ -179,9 +183,12 @@ class ThomasJoystickController(Node):
         # if math.fabs(wanted_deg) > 30:
         #     steering_angle_velocity = math.radians(20)
 
+
+       
         steering_angle = math.radians(wanted_deg)
 
-        
+        if math.fabs(steering_angle) < THRESHOLD_STEERING_ANGLE_ZERO:
+            steering_angle = 0.0
 
         return steering_angle, steering_angle_velocity
       
@@ -193,6 +200,8 @@ class ThomasJoystickController(Node):
         msg.header.frame_id = 'base_link'  
         msg.drive.speed = self.create_linear_velocity()  # Speed in m/s
         msg.drive.steering_angle, msg.drive.steering_angle_velocity = self.create_steering_angle()
+
+        self.get_logger().info(f'send  AckermannDriveStamped speed: {msg.drive.speed}, steering_angle: {msg.drive.steering_angle}')
 
         self.cmd_vel_publisher.publish(msg)
         
@@ -211,6 +220,7 @@ class ThomasJoystickController(Node):
 
 
     def timer_callback(self):
+
         if not self.is_joystick_init:
             self.get_logger().warn('Joystick is not initialized.')
             return
@@ -221,9 +231,7 @@ class ThomasJoystickController(Node):
         if self.create_action_cmd() == False:
                 
             self.create_ackermann_cmd()
-        
-
-
+      
 def main(args=None):
     rclpy.init(args=args)
     node = ThomasJoystickController()
