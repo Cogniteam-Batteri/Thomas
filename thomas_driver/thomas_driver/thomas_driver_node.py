@@ -21,9 +21,9 @@ class ThomasDriver(Node):
         super().__init__('thomas_driver_node')
 
         # Initialize the steering_controller
-        self.steering_controller = KincoController(MotorType.STEERING,"/dev/ttyUSB0")  
+        self.steering_controller = KincoController(MotorType.STEERING,"/dev/steering_motor")  # TOP
 
-        self.wheel_controller = KincoController(MotorType.WHEEL,"/dev/ttyUSB1") 
+        self.wheel_controller = KincoController(MotorType.WHEEL,"/dev/wheel_motor") # DOWN
 
 
 

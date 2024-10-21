@@ -24,3 +24,12 @@ RUN apt-get install libcwiid1 libcwiid-dev -y
 RUN apt-get install libbluetooth-dev -y
 RUN  apt-get install libx11-dev -y
 RUN apt-get install libspnav-dev -y
+
+    
+# Install Python dependencies
+RUN pip3 install pydantic==1.10.12
+
+RUN pip3 install pyserial
+RUN pip3 install pygame
+
+

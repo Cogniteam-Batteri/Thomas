@@ -36,7 +36,7 @@ class ThomasJoystickController(Node):
         self.cmd_vel_publisher = self.create_publisher(AckermannDriveStamped, '/thomas/cmd_vel', 10)
         self.driver_state_publisher = self.create_publisher(String, '/thomas/mode_switch', 10)        
 
-        self.load_params('/home/simulation/battery_ws/src/Thomas/thomas_joystick_controller/config/config.yaml')
+        self.load_params('/home/jetson/thomas_ws/src/Thomas/thomas_joystick_controller/config/config.yaml')
 
         self.load_joystick()
         

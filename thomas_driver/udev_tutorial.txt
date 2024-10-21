@@ -1,0 +1,33 @@
+
+For /dev/ttyUSB0:
+udevadm info -a -p $(udevadm info -q path -n /dev/ttyUSB0)
+
+For /dev/ttyUSB1:
+udevadm info -a -p $(udevadm info -q path -n /dev/ttyUSB1)
+
+In the output, look for attributes like KERNELS or DEVPATH, 
+which provide physical location data. This could be something like KERNELS=="1-1.3".
+
+Create a new udev rule: Create a new udev rules file. 
+You can name it something like 99-usb-serial.rules in the /etc/udev/rules.d/ directory:
+
+sudo nano /etc/udev/rules.d/99-usb-serial.rules
+
+Add rules for renaming devices: Based on the physical location information you gathered, 
+create rules to match the devices and assign them custom 
+names like /dev/steering_motor and /dev/wheel_motor. For example:
+
+SUBSYSTEM=="tty", KERNELS=="1-1.3", SYMLINK+="steering_motor"
+SUBSYSTEM=="tty", KERNELS=="1-1.4", SYMLINK+="wheel_motor"
+
+Replace KERNELS=="1-1.3" and KERNELS=="1-1.4" with the correct physical location identifiers for your USB devices.
+
+Reload the udev rules: After saving the file, reload the udev rules with the following command:
+sudo udevadm control --reload-rules
+
+Unplug and replug the USB devices (or reboot) to apply the changes. 
+You should now see /dev/steering_motor and /dev/wheel_motor corresponding to your USB devices.
+
+Verify the new device names: Use the following command to check if the new names are applied:
+
+ls -l /dev/steering_motor /dev/wheel_motor
